@@ -6,3 +6,6 @@ pub use event_filter::EventFilter;
 
 mod contract_address;
 pub use contract_address::ContractAddress;
+
+mod event;
+pub use event::Event;
