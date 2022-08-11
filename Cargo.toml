@@ -1,0 +1,48 @@
+[package]
+authors = ["Anthony Buisset <anthony@onlydust.xyz>"]
+categories = ["contribution", "health-check", "analytics-tracking", "analytics"]
+description = "Onlydust market place on-chain events indexing component."
+edition = "2021"
+homepage = "https://github.com/onlydustxyz/marketplace-indexer"
+keywords = ["http", "rest", "api"]
+license-file = "LICENSE"
+name = "marketplace-indexer"
+readme = "README.md"
+repository = "https://github.com/onlydustxyz/marketplace-indexer"
+version = "0.0.1"
+default-run = "marketplace-indexer"
+
+[dependencies]
+
+# Async
+tokio = { version = "1.18.2", features = ["full"] }
+async-trait = "0.1.56"
+futures = { version = "0.3.21", features = ["alloc"] }
+
+# Serde
+serde = { version = "1.0.137", features = ["derive"] }
+serde_json = "1.0.81"
+
+# Utils
+dotenv = "0.15.0"
+itertools = "0.10.3"
+mapinto = "0.2.1"
+thiserror = "1.0.31"
+
+# Log
+env_logger = "0.9.0"
+log = "0.4.17"
+slog = "2.7.0"
+slog-async = "2.7.0"
+slog-envlogger = "2.2.0"
+slog-json = "2.6.1"
+slog-scope = "4.4.0"
+slog-stdlog = "4.1.1"
+slog-term = "2.9.0"
+
+# Unit tests
+mockall = "0.11.2"
+rstest = "0.15.0"
+
+[build-dependencies]
+tonic-build = "0.7.2"

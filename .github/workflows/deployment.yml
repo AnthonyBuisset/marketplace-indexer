@@ -1,0 +1,19 @@
+name: Deployment build
+
+on:
+  push:
+    branches:
+      - "main"
+    tags:
+      - "v*"
+
+jobs:
+  docker-build:
+    uses: onlydustxyz/cicd/.github/workflows/docker-workflow.yml@main
+    with:
+      image_name: deathnote-contribution-feeder-rest-api
+      image_tag: ${{ github.ref_name }}
+      bin_name: deathnote_contributions_feeder
+      dockerfile: diesel-rocket-rs
+      datadog_label: '[{"source": "deathnote", "service": "deathnote-contribution-feeder-rest-api"}]'
+    secrets: inherit
