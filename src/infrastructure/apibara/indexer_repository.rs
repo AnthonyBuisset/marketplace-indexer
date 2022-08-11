@@ -1,5 +1,7 @@
-use super::apibara::{self, CreateIndexerRequest, DeleteIndexerRequest, GetIndexerRequest};
-use super::Client;
+use super::{
+	apibara::{self, CreateIndexerRequest, DeleteIndexerRequest, GetIndexerRequest},
+	Client,
+};
 use crate::domain::*;
 use async_trait::async_trait;
 use itertools::Itertools;
@@ -110,14 +112,11 @@ impl From<apibara::Network> for Network {
 				apibara::network::Network::Starknet(chain) => match chain.name {
 					chain if chain == "starknet-devnet" => Network::Starknet(StarknetChain::Devnet),
 					chain if chain == "starknet-goerli" => Network::Starknet(StarknetChain::Goerli),
-					chain if chain == "starknet-mainnet" => {
-						Network::Starknet(StarknetChain::Mainnet)
-					},
+					chain if chain == "starknet-mainnet" =>
+						Network::Starknet(StarknetChain::Mainnet),
 					_ => Network::Starknet(StarknetChain::Devnet),
 				},
-				apibara::network::Network::Ethereum(chain) => match chain.name {
-					_ => unimplemented!(),
-				},
+				apibara::network::Network::Ethereum(_) => unimplemented!(),
 			},
 			None => Network::Starknet(StarknetChain::Devnet),
 		}
@@ -151,9 +150,10 @@ impl From<apibara::Indexer> for Indexer {
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use rstest::*;
 
 	#[test]
-	fn to_string() {
+	fn network_to_apibara_string() {
 		assert_eq!(
 			"starknet-devnet",
 			Network::Starknet(StarknetChain::Devnet).to_string()
@@ -170,8 +170,46 @@ mod tests {
 		);
 	}
 
+	#[rstest]
+	#[case(StarknetChain::Devnet, "starknet-devnet")]
+	#[case(StarknetChain::Goerli, "starknet-goerli")]
+	#[case(StarknetChain::Mainnet, "starknet-mainnet")]
+	#[case(StarknetChain::Devnet, "non-existent")]
+	fn network_from_apibara(#[case] chain: StarknetChain, #[case] network_name: &str) {
+		assert_eq!(
+			Network::Starknet(chain),
+			Network::from(apibara::Network {
+				network: Some(apibara::network::Network::Starknet(
+					apibara::StarkNetNetwork {
+						name: String::from(network_name)
+					}
+				))
+			})
+		)
+	}
+
 	#[test]
-	fn event_filter_from() {
+	fn network_from_apibara_should_default_to_starknet_devnet() {
+		assert_eq!(
+			Network::Starknet(StarknetChain::Devnet),
+			Network::from(apibara::Network { network: None })
+		);
+	}
+
+	#[test]
+	#[should_panic(expected = "not implemented")]
+	fn network_from_apibara_should_panic_for_unimplemented() {
+		let _ = Network::from(apibara::Network {
+			network: Some(apibara::network::Network::Ethereum(
+				apibara::EthereumNetwork {
+					name: String::from(""),
+				},
+			)),
+		});
+	}
+
+	#[test]
+	fn event_filter_from_domain() {
 		let filter = apibara::EventFilter::from(EventFilter {
 			contract_address: "0x04e16efc9bc2d8d40ecb73d3d69e3e2d6f0fc3e2e6e9b7601310fdfa7dd6c7cf"
 				.into(),
@@ -189,5 +227,84 @@ mod tests {
 			filter.address
 		);
 		assert_eq!("GithubUserRegistered", filter.signature);
+	}
+
+	#[test]
+	fn event_filter_from_apibara() {
+		let filter = EventFilter::from(apibara::EventFilter {
+			address: vec![
+				48, 120, 48, 52, 101, 49, 54, 101, 102, 99, 57, 98, 99, 50, 100, 56, 100, 52, 48,
+				101, 99, 98, 55, 51, 100, 51, 100, 54, 57, 101, 51, 101, 50, 100, 54, 102, 48, 102,
+				99, 51, 101, 50, 101, 54, 101, 57, 98, 55, 54, 48, 49, 51, 49, 48, 102, 100, 102,
+				97, 55, 100, 100, 54, 99, 55, 99, 102,
+			],
+			signature: String::from("GithubUserRegistered"),
+		});
+
+		assert_eq!(
+			ContractAddress::from(
+				"0x04e16efc9bc2d8d40ecb73d3d69e3e2d6f0fc3e2e6e9b7601310fdfa7dd6c7cf"
+			),
+			filter.contract_address
+		);
+		assert_eq!("GithubUserRegistered", filter.event_name);
+	}
+
+	#[test]
+	fn indexer_from_apibara() {
+		let indexer = Indexer::from(apibara::Indexer {
+			id: String::from("ID"),
+			network: Some(apibara::Network {
+				network: Some(apibara::network::Network::Starknet(
+					apibara::StarkNetNetwork {
+						name: String::from("starknet-goerli"),
+					},
+				)),
+			}),
+			index_from_block: 1234,
+			indexed_to_block: None,
+			filters: vec![
+				apibara::EventFilter {
+					address: String::from("0x1234").into_bytes(),
+					signature: String::from("event1"),
+				},
+				apibara::EventFilter {
+					address: String::from("0x1234").into_bytes(),
+					signature: String::from("event2"),
+				},
+			],
+		});
+
+		let expected_indexer = Indexer::new(
+			IndexerId::from("ID"),
+			Network::Starknet(StarknetChain::Goerli),
+			1234,
+			vec![
+				EventFilter::new("0x1234", "event1"),
+				EventFilter::new("0x1234", "event2"),
+			],
+		);
+
+		assert_eq!(expected_indexer, indexer);
+	}
+
+	#[test]
+	fn indexer_from_apibara_with_no_network() {
+		let indexer = Indexer::from(apibara::Indexer {
+			id: String::from("ID"),
+			network: None,
+			index_from_block: 1234,
+			indexed_to_block: None,
+			filters: Vec::new(),
+		});
+
+		let expected_indexer = Indexer::new(
+			IndexerId::from("ID"),
+			Network::Starknet(StarknetChain::Devnet),
+			1234,
+			Vec::new(),
+		);
+
+		assert_eq!(expected_indexer, indexer);
 	}
 }

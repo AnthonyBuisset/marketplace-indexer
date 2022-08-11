@@ -1,5 +1,5 @@
-use mockall::automock;
 use crate::domain::*;
+use mockall::automock;
 
 #[automock]
 pub trait Service {

@@ -1,2 +1,2 @@
 mod indexer;
-pub use indexer::{Indexer, Id as IndexerId};
+pub use indexer::{Id as IndexerId, Indexer};
