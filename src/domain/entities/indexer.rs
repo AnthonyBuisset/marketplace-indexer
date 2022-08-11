@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::domain::*;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -9,9 +11,9 @@ impl<T: Into<String>> From<T> for Id {
 	}
 }
 
-impl ToString for Id {
-	fn to_string(&self) -> String {
-		self.0.to_owned()
+impl Display for Id {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		self.0.fmt(f)
 	}
 }
 

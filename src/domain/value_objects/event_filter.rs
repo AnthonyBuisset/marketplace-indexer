@@ -2,8 +2,8 @@ use crate::domain::*;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EventFilter {
-	contract_address: ContractAddress,
-	event_name: String,
+	pub contract_address: ContractAddress,
+	pub event_name: String,
 }
 
 impl EventFilter {

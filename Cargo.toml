@@ -23,11 +23,18 @@ futures = { version = "0.3.21", features = ["alloc"] }
 serde = { version = "1.0.137", features = ["derive"] }
 serde_json = "1.0.81"
 
+# Web client
+tonic = "0.7.2"
+
 # Utils
 dotenv = "0.15.0"
 itertools = "0.10.3"
 mapinto = "0.2.1"
 thiserror = "1.0.31"
+
+# Protocol Buffers
+prost = "0.10.4"
+prost-types = "0.10.1"
 
 # Log
 env_logger = "0.9.0"
