@@ -1,2 +1,2 @@
 mod indexing;
-pub use indexing::Service as IndexingService;
+pub use indexing::{Error as IndexingServiceError, Service as IndexingService};

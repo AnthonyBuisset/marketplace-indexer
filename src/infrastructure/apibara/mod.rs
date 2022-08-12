@@ -6,6 +6,7 @@ mod error;
 use error::Error;
 
 mod indexer_repository;
+mod indexing_service;
 
 use apibara::indexer_manager_client::IndexerManagerClient;
 use tokio::sync::RwLock;
