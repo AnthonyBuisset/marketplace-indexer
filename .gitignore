@@ -26,3 +26,6 @@
 
 # cargo-tarpaulin
 tarpaulin-report.html
+
+# docker
+_docker
