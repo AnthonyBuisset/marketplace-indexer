@@ -7,12 +7,12 @@ pub struct EventFilter {
 }
 
 impl EventFilter {
-	pub fn new<ADDRESS: Into<ContractAddress>, STRING: Into<String>>(
-		contract_address: ADDRESS,
+	pub fn new<STRING: Into<String>>(
+		contract_address: ContractAddress,
 		event_name: STRING,
 	) -> Self {
 		Self {
-			contract_address: contract_address.into(),
+			contract_address,
 			event_name: event_name.into(),
 		}
 	}
@@ -20,10 +20,12 @@ impl EventFilter {
 
 #[cfg(test)]
 mod test {
+	use std::str::FromStr;
+
 	use super::*;
 
 	#[test]
 	fn event_filter_can_be_created() {
-		EventFilter::new("0x1234", "my_event");
+		EventFilter::new(ContractAddress::from_str("0x1234").unwrap(), "my_event");
 	}
 }

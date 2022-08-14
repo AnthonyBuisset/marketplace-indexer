@@ -31,6 +31,7 @@ dotenv = "0.15.0"
 itertools = "0.10.3"
 mapinto = "0.2.1"
 thiserror = "1.0.31"
+hex = "0.4.3"
 
 # Protocol Buffers
 prost = "0.10.4"

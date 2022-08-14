@@ -39,6 +39,7 @@ impl Indexer {
 #[cfg(test)]
 mod test {
 	use super::*;
+	use std::str::FromStr;
 
 	#[test]
 	fn indexer_can_be_created() {
@@ -47,8 +48,8 @@ mod test {
 			Network::Starknet(StarknetChain::Devnet),
 			42,
 			vec![
-				EventFilter::new("0x1234", "event1"),
-				EventFilter::new("0x1234", "event2"),
+				EventFilter::new(ContractAddress::from_str("0x1234").unwrap(), "event1"),
+				EventFilter::new(ContractAddress::from_str("0x1234").unwrap(), "event2"),
 			],
 		);
 
@@ -57,8 +58,8 @@ mod test {
 		assert_eq!(42, indexer.index_from_block);
 		assert_eq!(
 			vec![
-				EventFilter::new("0x1234", "event1"),
-				EventFilter::new("0x1234", "event2"),
+				EventFilter::new(ContractAddress::from_str("0x1234").unwrap(), "event1"),
+				EventFilter::new(ContractAddress::from_str("0x1234").unwrap(), "event2"),
 			],
 			indexer.filters
 		);

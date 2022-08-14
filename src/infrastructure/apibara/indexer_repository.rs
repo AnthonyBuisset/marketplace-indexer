@@ -99,7 +99,7 @@ impl ToString for StarknetChain {
 impl From<EventFilter> for apibara::EventFilter {
 	fn from(filter: EventFilter) -> Self {
 		Self {
-			address: filter.contract_address.to_string().into_bytes(),
+			address: filter.contract_address.bytes(),
 			signature: filter.event_name,
 		}
 	}
@@ -126,8 +126,7 @@ impl From<apibara::Network> for Network {
 impl From<apibara::EventFilter> for EventFilter {
 	fn from(filter: apibara::EventFilter) -> Self {
 		Self {
-			// TODO: Implement From<Vec<u8>> for ContractAddress
-			contract_address: String::from_utf8(filter.address).unwrap_or_default().into(),
+			contract_address: filter.address.into(),
 			event_name: filter.signature,
 		}
 	}
@@ -149,6 +148,8 @@ impl From<apibara::Indexer> for Indexer {
 
 #[cfg(test)]
 mod tests {
+	use std::str::FromStr;
+
 	use super::*;
 	use rstest::*;
 
@@ -211,18 +212,18 @@ mod tests {
 	#[test]
 	fn event_filter_from_domain() {
 		let filter = apibara::EventFilter::from(EventFilter {
-			contract_address: "0x04e16efc9bc2d8d40ecb73d3d69e3e2d6f0fc3e2e6e9b7601310fdfa7dd6c7cf"
-				.into(),
+			contract_address: ContractAddress::from_str(
+				"0x04e16efc9bc2d8d40ecb73d3d69e3e2d6f0fc3e2e6e9b7601310fdfa7dd6c7cf",
+			)
+			.unwrap(),
 			event_name: "GithubUserRegistered".to_owned(),
 		});
 
 		// TODO: Check this is correct with end-to-end testing
 		assert_eq!(
 			vec![
-				48, 120, 48, 52, 101, 49, 54, 101, 102, 99, 57, 98, 99, 50, 100, 56, 100, 52, 48,
-				101, 99, 98, 55, 51, 100, 51, 100, 54, 57, 101, 51, 101, 50, 100, 54, 102, 48, 102,
-				99, 51, 101, 50, 101, 54, 101, 57, 98, 55, 54, 48, 49, 51, 49, 48, 102, 100, 102,
-				97, 55, 100, 100, 54, 99, 55, 99, 102
+				4, 225, 110, 252, 155, 194, 216, 212, 14, 203, 115, 211, 214, 158, 62, 45, 111, 15,
+				195, 226, 230, 233, 183, 96, 19, 16, 253, 250, 125, 214, 199, 207
 			],
 			filter.address
 		);
@@ -233,18 +234,17 @@ mod tests {
 	fn event_filter_from_apibara() {
 		let filter = EventFilter::from(apibara::EventFilter {
 			address: vec![
-				48, 120, 48, 52, 101, 49, 54, 101, 102, 99, 57, 98, 99, 50, 100, 56, 100, 52, 48,
-				101, 99, 98, 55, 51, 100, 51, 100, 54, 57, 101, 51, 101, 50, 100, 54, 102, 48, 102,
-				99, 51, 101, 50, 101, 54, 101, 57, 98, 55, 54, 48, 49, 51, 49, 48, 102, 100, 102,
-				97, 55, 100, 100, 54, 99, 55, 99, 102,
+				4, 225, 110, 252, 155, 194, 216, 212, 14, 203, 115, 211, 214, 158, 62, 45, 111, 15,
+				195, 226, 230, 233, 183, 96, 19, 16, 253, 250, 125, 214, 199, 207,
 			],
 			signature: String::from("GithubUserRegistered"),
 		});
 
 		assert_eq!(
-			ContractAddress::from(
+			ContractAddress::from_str(
 				"0x04e16efc9bc2d8d40ecb73d3d69e3e2d6f0fc3e2e6e9b7601310fdfa7dd6c7cf"
-			),
+			)
+			.unwrap(),
 			filter.contract_address
 		);
 		assert_eq!("GithubUserRegistered", filter.event_name);
@@ -265,11 +265,11 @@ mod tests {
 			indexed_to_block: None,
 			filters: vec![
 				apibara::EventFilter {
-					address: String::from("0x1234").into_bytes(),
+					address: vec![18, 52],
 					signature: String::from("event1"),
 				},
 				apibara::EventFilter {
-					address: String::from("0x1234").into_bytes(),
+					address: vec![18, 52],
 					signature: String::from("event2"),
 				},
 			],
@@ -280,8 +280,8 @@ mod tests {
 			Network::Starknet(StarknetChain::Goerli),
 			1234,
 			vec![
-				EventFilter::new("0x1234", "event1"),
-				EventFilter::new("0x1234", "event2"),
+				EventFilter::new(ContractAddress::from_str("0x1234").unwrap(), "event1"),
+				EventFilter::new(ContractAddress::from_str("0x1234").unwrap(), "event2"),
 			],
 		);
 

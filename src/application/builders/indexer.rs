@@ -53,9 +53,9 @@ impl Builder {
 	/**
 	 * Modify the network
 	 */
-	pub fn filter<ADDRESS: Into<ContractAddress>, STRING: Into<String>>(
+	pub fn filter<STRING: Into<String>>(
 		&mut self,
-		contract_address: ADDRESS,
+		contract_address: ContractAddress,
 		event_name: STRING,
 	) -> &mut Self {
 		self.filters.push(EventFilter::new(contract_address, event_name));
@@ -114,6 +114,7 @@ mod tests {
 	use super::*;
 	use mockall::predicate::*;
 	use rstest::*;
+	use std::str::FromStr;
 
 	#[fixture]
 	fn indexer_repository() -> MockIndexerRepository {
@@ -168,8 +169,8 @@ mod tests {
 			Network::Starknet(StarknetChain::Mainnet),
 			1234,
 			vec![
-				EventFilter::new("0x123", "Event1"),
-				EventFilter::new("0x456", "Event2"),
+				EventFilter::new(ContractAddress::from_str("0x1234").unwrap(), "Event1"),
+				EventFilter::new(ContractAddress::from_str("0x4567").unwrap(), "Event2"),
 			],
 		);
 
@@ -181,8 +182,14 @@ mod tests {
 		let result = Builder::new(Arc::new(indexer_repository))
 			.network(Network::Starknet(StarknetChain::Mainnet))
 			.start_at_block(1234)
-			.filter("0x123".to_owned(), "Event1".to_owned())
-			.filter("0x456".to_owned(), "Event2".to_owned())
+			.filter(
+				ContractAddress::from_str("0x1234").unwrap(),
+				"Event1".to_owned(),
+			)
+			.filter(
+				ContractAddress::from_str("0x4567").unwrap(),
+				"Event2".to_owned(),
+			)
 			.build("ID".into())
 			.await;
 
