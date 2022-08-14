@@ -1,6 +1,5 @@
 use async_trait::async_trait;
 use futures::{stream, StreamExt};
-use log::error;
 use std::sync::Arc;
 
 use super::{
@@ -47,10 +46,7 @@ impl IndexingService for Client {
 							println!("Empty message received")
 						},
 					},
-					Err(error) => error!(
-						"Error while receiving message from indexing server: {}",
-						error
-					),
+					Err(error) => observer.on_error(Arc::new(error)),
 				};
 			})
 			.await;
