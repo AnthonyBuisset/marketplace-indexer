@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::domain::*;
 use async_trait::async_trait;
 use mockall::automock;
@@ -14,5 +16,9 @@ type Result<T> = std::result::Result<T, Error>;
 #[automock]
 #[async_trait]
 pub trait Service {
-	async fn fetch_new_events(&self, indexer: &Indexer) -> Result<()>;
+	async fn fetch_new_events(
+		&self,
+		indexer: &Indexer,
+		observers: Arc<dyn BlockchainObserver>,
+	) -> Result<()>;
 }

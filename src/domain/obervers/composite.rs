@@ -1,16 +1,18 @@
+use std::sync::Arc;
+
 use super::*;
 
-pub struct ObserverComposite(Vec<Box<dyn Observer>>);
+pub struct ObserverComposite(Vec<Arc<dyn Observer>>);
 
 impl ObserverComposite {
-	pub fn new(observers: Vec<Box<dyn Observer>>) -> Self {
+	pub fn new(observers: Vec<Arc<dyn Observer>>) -> Self {
 		Self(observers)
 	}
 }
 
 impl Observer for ObserverComposite {
-	fn on_connect(&self) {
-		self.0.iter().for_each(|observer| observer.on_connect())
+	fn on_connect(&self, indexer_id: IndexerId) {
+		self.0.iter().for_each(|observer| observer.on_connect(indexer_id.clone()))
 	}
 
 	fn on_new_event(&self, event: Event) {
@@ -41,20 +43,20 @@ mod test {
 		let mut observer2 = MockObserver::new();
 		observer2.expect_on_new_event().with(eq(event.clone())).return_const(());
 
-		let composite = ObserverComposite::new(vec![Box::new(observer1), Box::new(observer2)]);
+		let composite = ObserverComposite::new(vec![Arc::new(observer1), Arc::new(observer2)]);
 		composite.on_new_event(event);
 	}
 
 	#[test]
 	fn on_connect() {
 		let mut observer1 = MockObserver::new();
-		observer1.expect_on_connect().return_const(());
+		observer1.expect_on_connect().with(eq(IndexerId::from("ID"))).return_const(());
 
 		let mut observer2 = MockObserver::new();
-		observer2.expect_on_connect().return_const(());
+		observer2.expect_on_connect().with(eq(IndexerId::from("ID"))).return_const(());
 
-		let composite = ObserverComposite::new(vec![Box::new(observer1), Box::new(observer2)]);
-		composite.on_connect();
+		let composite = ObserverComposite::new(vec![Arc::new(observer1), Arc::new(observer2)]);
+		composite.on_connect(IndexerId::from("ID"));
 	}
 
 	#[test]
@@ -65,7 +67,7 @@ mod test {
 		let mut observer2 = MockObserver::new();
 		observer2.expect_on_new_block().return_const(());
 
-		let composite = ObserverComposite::new(vec![Box::new(observer1), Box::new(observer2)]);
+		let composite = ObserverComposite::new(vec![Arc::new(observer1), Arc::new(observer2)]);
 		composite.on_new_block();
 	}
 
@@ -77,7 +79,7 @@ mod test {
 		let mut observer2 = MockObserver::new();
 		observer2.expect_on_reorg().return_const(());
 
-		let composite = ObserverComposite::new(vec![Box::new(observer1), Box::new(observer2)]);
+		let composite = ObserverComposite::new(vec![Arc::new(observer1), Arc::new(observer2)]);
 		composite.on_reorg();
 	}
 }

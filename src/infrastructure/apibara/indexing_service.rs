@@ -1,5 +1,7 @@
 use async_trait::async_trait;
-use futures::{stream, StreamExt, TryStreamExt};
+use futures::{stream, StreamExt};
+use log::error;
+use std::sync::Arc;
 
 use super::{
 	apibara::{
@@ -12,7 +14,11 @@ use crate::domain::*;
 
 #[async_trait]
 impl IndexingService for Client {
-	async fn fetch_new_events(&self, indexer: &Indexer) -> Result<(), IndexingServiceError> {
+	async fn fetch_new_events(
+		&self,
+		indexer: &Indexer,
+		observer: Arc<dyn BlockchainObserver>,
+	) -> Result<(), IndexingServiceError> {
 		let request = ConnectIndexerRequest {
 			message: Some(connect_indexer_request::Message::Connect(ConnectIndexer {
 				id: indexer.id.to_string(),
@@ -29,28 +35,24 @@ impl IndexingService for Client {
 				details: e.to_string(),
 			})?
 			.into_inner()
-			.try_filter_map(|msg| async {
-				match msg.message {
-					Some(Message::Connected(msg)) => {
-						println!("Indexer connected: {:?}", msg)
+			.for_each(|msg| async {
+				match msg {
+					Ok(msg) => match msg.message {
+						Some(Message::Connected(msg)) =>
+							observer.on_connect(msg.indexer.unwrap_or_default().id.into()),
+						Some(Message::NewBlock(_)) => observer.on_new_block(),
+						Some(Message::Reorg(_)) => observer.on_reorg(),
+						Some(Message::NewEvents(_)) => observer.on_new_event(Event),
+						None => {
+							println!("Empty message received")
+						},
 					},
-					Some(Message::NewBlock(msg)) => {
-						println!("New block: {:?}", msg)
-					},
-					Some(Message::Reorg(msg)) => {
-						println!("Reorg: {:?}", msg)
-					},
-					Some(Message::NewEvents(msg)) => {
-						println!("New events: {:?}", msg)
-					},
-					None => {
-						println!("Empty message received")
-					},
+					Err(error) => error!(
+						"Error while receiving message from indexing server: {}",
+						error
+					),
 				};
-
-				Ok(Some(()))
 			})
-			.collect::<Vec<_>>()
 			.await;
 
 		Ok(())

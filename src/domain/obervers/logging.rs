@@ -2,7 +2,7 @@ use log::info;
 
 use super::*;
 
-type LoggingCallback = dyn Fn(String);
+type LoggingCallback = dyn Fn(String) + Sync;
 pub struct Logger<'a>(&'a LoggingCallback);
 
 impl<'a> Logger<'a> {
@@ -12,8 +12,8 @@ impl<'a> Logger<'a> {
 }
 
 impl Observer for Logger<'_> {
-	fn on_connect(&self) {
-		self.0(format!("Indexer connected"));
+	fn on_connect(&self, indexer_id: IndexerId) {
+		self.0(format!("Indexer `{indexer_id}` connected"));
 	}
 
 	fn on_new_event(&self, event: Event) {
@@ -21,11 +21,11 @@ impl Observer for Logger<'_> {
 	}
 
 	fn on_new_block(&self) {
-		self.0(format!("New block"));
+		self.0("New block".to_string());
 	}
 
 	fn on_reorg(&self) {
-		self.0(format!("Chain reorg"));
+		self.0("Chain reorg".to_string());
 	}
 }
 
@@ -59,11 +59,14 @@ mod test {
 	#[test]
 	fn on_connect() {
 		let mut logger = MockLoggerCallback::new();
-		logger.expect_log().with(eq(String::from("Indexer connected"))).return_const(());
+		logger
+			.expect_log()
+			.with(eq(String::from("Indexer `ID` connected")))
+			.return_const(());
 		let logging_callback = move |message| logger.log(message);
 
 		let handler = Logger::new(&logging_callback);
-		handler.on_connect();
+		handler.on_connect(IndexerId::from("ID"));
 	}
 
 	#[test]

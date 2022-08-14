@@ -14,4 +14,7 @@ mod error;
 pub use error::Error;
 
 mod obervers;
-pub use obervers::*;
+pub use obervers::{
+	Logger as BlockchainLogger, Observer as BlockchainObserver,
+	ObserverComposite as BlockchainObserverComposite,
+};
