@@ -7,6 +7,7 @@ use error::Error;
 
 mod indexer_repository;
 mod indexing_service;
+mod streaming_request;
 
 use apibara::indexer_manager_client::IndexerManagerClient;
 use tokio::sync::RwLock;
