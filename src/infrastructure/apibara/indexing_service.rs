@@ -126,21 +126,52 @@ async fn handle_response(
 			Ok(())
 		},
 
-		Some(ResponseMessage::NewEvents(NewEvents {
-			block: Some(header),
-			events,
-		})) => {
-			events.into_iter().for_each(|event| observer.on_new_event(&event.into()));
-			send_ack_request(sender, &header.hash.into()).await
+		Some(ResponseMessage::NewEvents(NewEvents { block, events })) => {
+			events.into_iter().for_each(|event| {
+				if let Some(event) = event.try_into().ok() {
+					observer.on_new_event(&event);
+				}
+			});
+			if let Some(header) = block {
+				send_ack_request(sender, &header.hash.into()).await
+			} else {
+				Ok(())
+			}
 		},
 
 		_ => Ok(()),
 	}
 }
 
-impl From<apibara::Event> for Event {
-	fn from(_: apibara::Event) -> Self {
-		Self
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum FromEventError {
+	#[error("Unsupported event")]
+	Unsupported,
+}
+
+impl TryFrom<apibara::Event> for Event {
+	type Error = FromEventError;
+
+	fn try_from(event: apibara::Event) -> Result<Self, Self::Error> {
+		match event.event {
+			Some(apibara::event::Event::Starknet(apibara::StarkNetEvent {
+				address,
+				log_index,
+				topics,
+				data,
+			})) => {
+				info!(
+					"New Event from {}: [{log_index}] {:?}. Data: {:?}",
+					ContractAddress::from(address),
+					topics,
+					data
+				);
+				Ok(Event)
+			},
+			_ => Err(Self::Error::Unsupported),
+		}
 	}
 }
 
@@ -169,6 +200,15 @@ mod test {
 	#[fixture]
 	fn observer() -> MockBlockchainObserver {
 		MockBlockchainObserver::new()
+	}
+
+	#[fixture]
+	fn apibara_event() -> apibara::Event {
+		apibara::Event {
+			event: Some(apibara::event::Event::Starknet(apibara::StarkNetEvent {
+				..Default::default()
+			})),
+		}
 	}
 
 	#[rstest]
@@ -243,6 +283,7 @@ mod test {
 	async fn can_handle_a_new_events_response(
 		mut channel: Channel,
 		mut observer: MockBlockchainObserver,
+		apibara_event: apibara::Event,
 		block_hash: BlockHash,
 	) {
 		let response = ConnectIndexerResponse {
@@ -251,7 +292,7 @@ mod test {
 					hash: block_hash.bytes(),
 					..Default::default()
 				}),
-				events: vec![Default::default(), Default::default()],
+				events: vec![apibara_event.clone(), apibara_event, Default::default()],
 			})),
 		};
 
