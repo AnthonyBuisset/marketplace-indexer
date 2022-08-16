@@ -26,10 +26,6 @@ impl Observer for ObserverComposite {
 	fn on_reorg(&self) {
 		self.0.iter().for_each(|observer| observer.on_reorg())
 	}
-
-	fn on_error(&self, error: Arc<dyn std::error::Error>) {
-		self.0.iter().for_each(|observer| observer.on_error(error.clone()))
-	}
 }
 
 #[cfg(test)]
@@ -89,22 +85,5 @@ mod test {
 
 		let composite = ObserverComposite::new(vec![Arc::new(observer1), Arc::new(observer2)]);
 		composite.on_reorg();
-	}
-
-	#[test]
-	fn on_error() {
-		use thiserror::Error;
-		#[derive(Debug, Error, PartialEq, Eq)]
-		#[error("oops")]
-		struct Error;
-
-		let mut observer1 = MockObserver::new();
-		observer1.expect_on_error().return_const(());
-
-		let mut observer2 = MockObserver::new();
-		observer2.expect_on_error().return_const(());
-
-		let composite = ObserverComposite::new(vec![Arc::new(observer1), Arc::new(observer2)]);
-		composite.on_error(Arc::new(Error));
 	}
 }

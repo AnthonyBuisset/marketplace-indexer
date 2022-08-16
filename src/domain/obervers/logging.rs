@@ -27,12 +27,6 @@ impl Observer for Logger<'_> {
 	fn on_reorg(&self) {
 		self.0("🤕 Chain reorg".to_string());
 	}
-
-	fn on_error(&self, error: Arc<dyn std::error::Error>) {
-		self.0(format!(
-			"❌ Error while fetching messages from indexing server: {error}"
-		));
-	}
 }
 
 impl Default for Logger<'_> {
@@ -102,26 +96,6 @@ mod test {
 
 		let handler = Logger::new(&logging_callback);
 		handler.on_reorg();
-	}
-
-	#[test]
-	fn on_error() {
-		use thiserror::Error;
-		#[derive(Debug, Error)]
-		#[error("oops")]
-		struct Error;
-
-		let mut logger = MockLoggerCallback::new();
-		logger
-			.expect_log()
-			.with(eq(String::from(
-				"❌ Error while fetching messages from indexing server: oops",
-			)))
-			.return_const(());
-		let logging_callback = move |message| logger.log(message);
-
-		let handler = Logger::new(&logging_callback);
-		handler.on_error(Arc::new(Error));
 	}
 
 	#[test]
