@@ -11,16 +11,16 @@ impl ObserverComposite {
 }
 
 impl Observer for ObserverComposite {
-	fn on_connect(&self, indexer_id: IndexerId) {
-		self.0.iter().for_each(|observer| observer.on_connect(indexer_id.clone()))
+	fn on_connect(&self, indexer_id: &IndexerId) {
+		self.0.iter().for_each(|observer| observer.on_connect(indexer_id))
 	}
 
-	fn on_new_event(&self, event: Event) {
-		self.0.iter().for_each(|observer| observer.on_new_event(event.clone()))
+	fn on_new_event(&self, event: &Event) {
+		self.0.iter().for_each(|observer| observer.on_new_event(event))
 	}
 
-	fn on_new_block(&self, block_hash: BlockHash) {
-		self.0.iter().for_each(|observer| observer.on_new_block(block_hash.clone()))
+	fn on_new_block(&self, block_hash: &BlockHash) {
+		self.0.iter().for_each(|observer| observer.on_new_block(block_hash))
 	}
 
 	fn on_reorg(&self) {
@@ -46,7 +46,7 @@ mod test {
 		observer2.expect_on_new_event().with(eq(event.clone())).return_const(());
 
 		let composite = ObserverComposite::new(vec![Arc::new(observer1), Arc::new(observer2)]);
-		composite.on_new_event(event);
+		composite.on_new_event(&event);
 	}
 
 	#[test]
@@ -58,7 +58,7 @@ mod test {
 		observer2.expect_on_connect().with(eq(IndexerId::from("ID"))).return_const(());
 
 		let composite = ObserverComposite::new(vec![Arc::new(observer1), Arc::new(observer2)]);
-		composite.on_connect(IndexerId::from("ID"));
+		composite.on_connect(&IndexerId::from("ID"));
 	}
 
 	#[test]
@@ -72,7 +72,7 @@ mod test {
 		observer2.expect_on_new_block().with(eq(block_hash.clone())).return_const(());
 
 		let composite = ObserverComposite::new(vec![Arc::new(observer1), Arc::new(observer2)]);
-		composite.on_new_block(block_hash);
+		composite.on_new_block(&block_hash);
 	}
 
 	#[test]

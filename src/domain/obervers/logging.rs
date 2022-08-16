@@ -12,15 +12,15 @@ impl<'a> Logger<'a> {
 }
 
 impl Observer for Logger<'_> {
-	fn on_connect(&self, indexer_id: IndexerId) {
+	fn on_connect(&self, indexer_id: &IndexerId) {
 		self.0(format!("🔗 Indexer `{indexer_id}` connected"));
 	}
 
-	fn on_new_event(&self, event: Event) {
+	fn on_new_event(&self, event: &Event) {
 		self.0(format!("⚡ New event: {:?}", event));
 	}
 
-	fn on_new_block(&self, block_hash: BlockHash) {
+	fn on_new_block(&self, block_hash: &BlockHash) {
 		self.0(format!("⛏️ New block: {block_hash}"));
 	}
 
@@ -62,7 +62,7 @@ mod test {
 
 		let event = Event;
 		let handler = Logger::new(&logging_callback);
-		handler.on_new_event(event);
+		handler.on_new_event(&event);
 	}
 
 	#[rstest]
@@ -74,7 +74,7 @@ mod test {
 		let logging_callback = move |message| logger.log(message);
 
 		let handler = Logger::new(&logging_callback);
-		handler.on_connect(IndexerId::from("ID"));
+		handler.on_connect(&IndexerId::from("ID"));
 	}
 
 	#[rstest]
@@ -86,7 +86,7 @@ mod test {
 		let logging_callback = move |message| logger.log(message);
 
 		let handler = Logger::new(&logging_callback);
-		handler.on_new_block(BlockHash::from_str("0x1234").unwrap());
+		handler.on_new_block(&BlockHash::from_str("0x1234").unwrap());
 	}
 
 	#[rstest]
@@ -101,6 +101,6 @@ mod test {
 	#[test]
 	fn handler_can_be_created_using_default() {
 		let handler = Logger::default();
-		handler.on_new_event(Event);
+		handler.on_new_event(&Event);
 	}
 }

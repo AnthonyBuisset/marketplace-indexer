@@ -37,12 +37,13 @@ impl IndexingService for Client {
 			.into_inner();
 
 		loop {
-			let message = response_stream
+			match response_stream
 				.message()
 				.await
-				.map_err(|error| IndexingServiceError::Receive(error.to_string()))?;
-			if let Some(message) = message {
-				handle_response(message, &channel.tx, &*observer).await?;
+				.map_err(|error| IndexingServiceError::Receive(error.to_string()))?
+			{
+				Some(response) => handle_response(response, &channel.tx, &*observer).await?,
+				None => continue,
 			}
 		}
 	}
@@ -107,19 +108,28 @@ async fn handle_response(
 		Some(ResponseMessage::Connected(IndexerConnected {
 			indexer: Some(indexer),
 			version: _,
-		})) => Ok(observer.on_connect(indexer.id.into())),
+		})) => {
+			observer.on_connect(&indexer.id.into());
+			Ok(())
+		},
 
 		Some(ResponseMessage::NewBlock(NewBlock {
 			new_head: Some(new_head),
 		})) => {
 			let block_hash = BlockHash::from(new_head.hash);
-			send_ack_request(sender, &block_hash).await?;
-			Ok(observer.on_new_block(block_hash))
+			observer.on_new_block(&block_hash);
+			send_ack_request(sender, &block_hash).await
 		},
 
-		Some(ResponseMessage::Reorg(_)) => Ok(observer.on_reorg()),
+		Some(ResponseMessage::Reorg(_)) => {
+			observer.on_reorg();
+			Ok(())
+		},
 
-		Some(ResponseMessage::NewEvents(_)) => Ok(observer.on_new_event(Event)),
+		Some(ResponseMessage::NewEvents(_)) => {
+			observer.on_new_event(&Event);
+			Ok(())
+		},
 
 		_ => Ok(()),
 	}
