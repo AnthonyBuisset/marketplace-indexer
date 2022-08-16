@@ -18,20 +18,20 @@ impl Observer for Logger<'_> {
 	}
 
 	async fn on_new_event(&self, event: Event) {
-		self.0(format!("New event: {:?}", event));
+		self.0(format!("⚡ New event: {:?}", event));
 	}
 
 	async fn on_new_block(&self, block_hash: BlockHash) {
-		self.0(format!("New block: {block_hash}"));
+		self.0(format!("⛏️ New block: {block_hash}"));
 	}
 
 	async fn on_reorg(&self) {
-		self.0("Chain reorg".to_string());
+		self.0("🤕 Chain reorg".to_string());
 	}
 
 	async fn on_error(&self, error: Arc<dyn std::error::Error + Send + Sync>) {
 		self.0(format!(
-			"Error while fetching messages from indexing server: {error}"
+			"❌ Error while fetching messages from indexing server: {error}"
 		));
 	}
 }
@@ -62,7 +62,10 @@ mod test {
 	#[rstest]
 	#[tokio::test]
 	async fn on_new_event(mut logger: MockLoggerCallback) {
-		logger.expect_log().with(eq(String::from("New event: Event"))).return_const(());
+		logger
+			.expect_log()
+			.with(eq(String::from("⚡ New event: Event")))
+			.return_const(());
 		let logging_callback = move |message| logger.log(message);
 
 		let event = Event;
@@ -86,7 +89,10 @@ mod test {
 	#[rstest]
 	#[tokio::test]
 	async fn on_new_block(mut logger: MockLoggerCallback) {
-		logger.expect_log().with(eq(String::from("New block: 0x1234"))).return_const(());
+		logger
+			.expect_log()
+			.with(eq(String::from("⛏️ New block: 0x1234")))
+			.return_const(());
 		let logging_callback = move |message| logger.log(message);
 
 		let handler = Logger::new(&logging_callback);
@@ -96,7 +102,7 @@ mod test {
 	#[rstest]
 	#[tokio::test]
 	async fn on_reorg(mut logger: MockLoggerCallback) {
-		logger.expect_log().with(eq(String::from("Chain reorg"))).return_const(());
+		logger.expect_log().with(eq(String::from("🤕 Chain reorg"))).return_const(());
 		let logging_callback = move |message| logger.log(message);
 
 		let handler = Logger::new(&logging_callback);
@@ -114,7 +120,7 @@ mod test {
 		logger
 			.expect_log()
 			.with(eq(String::from(
-				"Error while fetching messages from indexing server: oops",
+				"❌ Error while fetching messages from indexing server: oops",
 			)))
 			.return_const(());
 		let logging_callback = move |message| logger.log(message);
