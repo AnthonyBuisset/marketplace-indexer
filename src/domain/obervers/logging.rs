@@ -11,24 +11,25 @@ impl<'a> Logger<'a> {
 	}
 }
 
+#[async_trait]
 impl Observer for Logger<'_> {
-	fn on_connect(&self, indexer_id: IndexerId) {
+	async fn on_connect(&self, indexer_id: IndexerId) {
 		self.0(format!("Indexer `{indexer_id}` connected"));
 	}
 
-	fn on_new_event(&self, event: Event) {
+	async fn on_new_event(&self, event: Event) {
 		self.0(format!("New event: {:?}", event));
 	}
 
-	fn on_new_block(&self, block_hash: BlockHash) {
+	async fn on_new_block(&self, block_hash: BlockHash) {
 		self.0(format!("New block: {block_hash}"));
 	}
 
-	fn on_reorg(&self) {
+	async fn on_reorg(&self) {
 		self.0("Chain reorg".to_string());
 	}
 
-	fn on_error(&self, error: Arc<dyn std::error::Error>) {
+	async fn on_error(&self, error: Arc<dyn std::error::Error + Send + Sync>) {
 		self.0(format!(
 			"Error while fetching messages from indexing server: {error}"
 		));
@@ -43,30 +44,35 @@ impl Default for Logger<'_> {
 
 #[cfg(test)]
 mod test {
-	use std::str::FromStr;
-
 	use super::*;
 	use mockall::predicate::*;
+	use rstest::*;
+	use std::str::FromStr;
 
 	#[automock]
 	trait LoggerCallback {
 		fn log(&self, message: String);
 	}
 
-	#[test]
-	fn on_new_event() {
-		let mut logger = MockLoggerCallback::new();
+	#[fixture]
+	fn logger() -> MockLoggerCallback {
+		MockLoggerCallback::new()
+	}
+
+	#[rstest]
+	#[tokio::test]
+	async fn on_new_event(mut logger: MockLoggerCallback) {
 		logger.expect_log().with(eq(String::from("New event: Event"))).return_const(());
 		let logging_callback = move |message| logger.log(message);
 
 		let event = Event;
 		let handler = Logger::new(&logging_callback);
-		handler.on_new_event(event);
+		handler.on_new_event(event).await;
 	}
 
-	#[test]
-	fn on_connect() {
-		let mut logger = MockLoggerCallback::new();
+	#[rstest]
+	#[tokio::test]
+	async fn on_connect(mut logger: MockLoggerCallback) {
 		logger
 			.expect_log()
 			.with(eq(String::from("Indexer `ID` connected")))
@@ -74,37 +80,37 @@ mod test {
 		let logging_callback = move |message| logger.log(message);
 
 		let handler = Logger::new(&logging_callback);
-		handler.on_connect(IndexerId::from("ID"));
+		handler.on_connect(IndexerId::from("ID")).await;
 	}
 
-	#[test]
-	fn on_new_block() {
-		let mut logger = MockLoggerCallback::new();
+	#[rstest]
+	#[tokio::test]
+	async fn on_new_block(mut logger: MockLoggerCallback) {
 		logger.expect_log().with(eq(String::from("New block: 0x1234"))).return_const(());
 		let logging_callback = move |message| logger.log(message);
 
 		let handler = Logger::new(&logging_callback);
-		handler.on_new_block(BlockHash::from_str("0x1234").unwrap());
+		handler.on_new_block(BlockHash::from_str("0x1234").unwrap()).await;
 	}
 
-	#[test]
-	fn on_reorg() {
-		let mut logger = MockLoggerCallback::new();
+	#[rstest]
+	#[tokio::test]
+	async fn on_reorg(mut logger: MockLoggerCallback) {
 		logger.expect_log().with(eq(String::from("Chain reorg"))).return_const(());
 		let logging_callback = move |message| logger.log(message);
 
 		let handler = Logger::new(&logging_callback);
-		handler.on_reorg();
+		handler.on_reorg().await;
 	}
 
-	#[test]
-	fn on_error() {
+	#[rstest]
+	#[tokio::test]
+	async fn on_error(mut logger: MockLoggerCallback) {
 		use thiserror::Error;
 		#[derive(Debug, Error)]
 		#[error("oops")]
 		struct Error;
 
-		let mut logger = MockLoggerCallback::new();
 		logger
 			.expect_log()
 			.with(eq(String::from(
@@ -114,12 +120,12 @@ mod test {
 		let logging_callback = move |message| logger.log(message);
 
 		let handler = Logger::new(&logging_callback);
-		handler.on_error(Arc::new(Error));
+		handler.on_error(Arc::new(Error)).await;
 	}
 
-	#[test]
-	fn handler_can_be_created_using_default() {
+	#[tokio::test]
+	async fn handler_can_be_created_using_default() {
 		let handler = Logger::default();
-		handler.on_new_event(Event);
+		handler.on_new_event(Event).await;
 	}
 }
