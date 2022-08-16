@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use log::info;
 use std::sync::Arc;
 use tokio::sync::mpsc::{self, Receiver, Sender};
 use tokio_stream::wrappers::ReceiverStream;
@@ -70,6 +71,7 @@ async fn send_ack_request(
 	sender: &Sender<ConnectIndexerRequest>,
 	block_hash: &BlockHash,
 ) -> Result<(), IndexingServiceError> {
+	info!("Acknowledging block {block_hash}");
 	send(sender, ack_block(block_hash)).await
 }
 
