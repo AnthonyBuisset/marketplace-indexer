@@ -20,8 +20,8 @@ impl Observer for Logger<'_> {
 		self.0(format!("New event: {:?}", event));
 	}
 
-	fn on_new_block(&self) {
-		self.0("New block".to_string());
+	fn on_new_block(&self, block_hash: BlockHash) {
+		self.0(format!("New block: {block_hash}"));
 	}
 
 	fn on_reorg(&self) {
@@ -43,6 +43,8 @@ impl Default for Logger<'_> {
 
 #[cfg(test)]
 mod test {
+	use std::str::FromStr;
+
 	use super::*;
 	use mockall::predicate::*;
 
@@ -78,11 +80,11 @@ mod test {
 	#[test]
 	fn on_new_block() {
 		let mut logger = MockLoggerCallback::new();
-		logger.expect_log().with(eq(String::from("New block"))).return_const(());
+		logger.expect_log().with(eq(String::from("New block: 0x1234"))).return_const(());
 		let logging_callback = move |message| logger.log(message);
 
 		let handler = Logger::new(&logging_callback);
-		handler.on_new_block();
+		handler.on_new_block(BlockHash::from_str("0x1234").unwrap());
 	}
 
 	#[test]

@@ -19,8 +19,8 @@ impl Observer for ObserverComposite {
 		self.0.iter().for_each(|observer| observer.on_new_event(event.clone()))
 	}
 
-	fn on_new_block(&self) {
-		self.0.iter().for_each(|observer| observer.on_new_block())
+	fn on_new_block(&self, block_hash: BlockHash) {
+		self.0.iter().for_each(|observer| observer.on_new_block(block_hash.clone()))
 	}
 
 	fn on_reorg(&self) {
@@ -34,6 +34,8 @@ impl Observer for ObserverComposite {
 
 #[cfg(test)]
 mod test {
+	use std::str::FromStr;
+
 	use super::*;
 	use mockall::predicate::*;
 
@@ -65,14 +67,16 @@ mod test {
 
 	#[test]
 	fn on_new_block() {
+		let block_hash = BlockHash::from_str("0x1234").unwrap();
+
 		let mut observer1 = MockObserver::new();
-		observer1.expect_on_new_block().return_const(());
+		observer1.expect_on_new_block().with(eq(block_hash.clone())).return_const(());
 
 		let mut observer2 = MockObserver::new();
-		observer2.expect_on_new_block().return_const(());
+		observer2.expect_on_new_block().with(eq(block_hash.clone())).return_const(());
 
 		let composite = ObserverComposite::new(vec![Arc::new(observer1), Arc::new(observer2)]);
-		composite.on_new_block();
+		composite.on_new_block(block_hash);
 	}
 
 	#[test]
