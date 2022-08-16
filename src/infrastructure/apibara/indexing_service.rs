@@ -8,7 +8,7 @@ use super::{
 	apibara::{
 		connect_indexer_request::Message as RequestMessage,
 		connect_indexer_response::Message as ResponseMessage, AckBlock, ConnectIndexer,
-		ConnectIndexerRequest, ConnectIndexerResponse, IndexerConnected, NewBlock,
+		ConnectIndexerRequest, ConnectIndexerResponse, IndexerConnected, NewBlock, NewEvents,
 	},
 	*,
 };
@@ -126,12 +126,21 @@ async fn handle_response(
 			Ok(())
 		},
 
-		Some(ResponseMessage::NewEvents(_)) => {
-			observer.on_new_event(&Event);
-			Ok(())
+		Some(ResponseMessage::NewEvents(NewEvents {
+			block: Some(header),
+			events,
+		})) => {
+			events.into_iter().for_each(|event| observer.on_new_event(&event.into()));
+			send_ack_request(sender, &header.hash.into()).await
 		},
 
 		_ => Ok(()),
+	}
+}
+
+impl From<apibara::Event> for Event {
+	fn from(_: apibara::Event) -> Self {
+		Self
 	}
 }
 
@@ -231,19 +240,26 @@ mod test {
 
 	#[rstest]
 	#[tokio::test]
-	async fn can_handle_a_new_event_response(
+	async fn can_handle_a_new_events_response(
 		mut channel: Channel,
 		mut observer: MockBlockchainObserver,
+		block_hash: BlockHash,
 	) {
 		let response = ConnectIndexerResponse {
-			message: Some(ResponseMessage::NewEvents(apibara::NewEvents::default())),
+			message: Some(ResponseMessage::NewEvents(apibara::NewEvents {
+				block: Some(BlockHeader {
+					hash: block_hash.bytes(),
+					..Default::default()
+				}),
+				events: vec![Default::default(), Default::default()],
+			})),
 		};
 
-		observer.expect_on_new_event().return_const(());
+		observer.expect_on_new_event().times(2).return_const(());
 
 		let result = handle_response(response, &channel.tx, &observer).await;
 		assert!(result.is_ok(), "{}", result.err().unwrap());
-		assert_eq!(TryRecvError::Empty, channel.rx.try_recv().unwrap_err());
+		assert!(channel.rx.try_recv().is_ok());
 	}
 
 	#[rstest]
@@ -257,6 +273,16 @@ mod test {
 		};
 
 		observer.expect_on_reorg().return_const(());
+
+		let result = handle_response(response, &channel.tx, &observer).await;
+		assert!(result.is_ok(), "{}", result.err().unwrap());
+		assert_eq!(TryRecvError::Empty, channel.rx.try_recv().unwrap_err());
+	}
+
+	#[rstest]
+	#[tokio::test]
+	async fn can_handle_an_empty_response(mut channel: Channel, observer: MockBlockchainObserver) {
+		let response = ConnectIndexerResponse { message: None };
 
 		let result = handle_response(response, &channel.tx, &observer).await;
 		assert!(result.is_ok(), "{}", result.err().unwrap());
