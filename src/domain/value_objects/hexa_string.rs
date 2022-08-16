@@ -6,7 +6,7 @@ pub type ContractAddress = HexaString;
 pub type BlockHash = HexaString;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct HexaString(Vec<u8>);
+pub struct HexaString(Vec<u8>);
 
 impl HexaString {
 	pub fn bytes(&self) -> Vec<u8> {
