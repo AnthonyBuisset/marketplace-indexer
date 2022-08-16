@@ -13,24 +13,24 @@ impl<'a> Logger<'a> {
 
 impl Observer for Logger<'_> {
 	fn on_connect(&self, indexer_id: IndexerId) {
-		self.0(format!("Indexer `{indexer_id}` connected"));
+		self.0(format!("🔗 Indexer `{indexer_id}` connected"));
 	}
 
 	fn on_new_event(&self, event: Event) {
-		self.0(format!("New event: {:?}", event));
+		self.0(format!("⚡ New event: {:?}", event));
 	}
 
 	fn on_new_block(&self, block_hash: BlockHash) {
-		self.0(format!("New block: {block_hash}"));
+		self.0(format!("⛏️ New block: {block_hash}"));
 	}
 
 	fn on_reorg(&self) {
-		self.0("Chain reorg".to_string());
+		self.0("🤕 Chain reorg".to_string());
 	}
 
 	fn on_error(&self, error: Arc<dyn std::error::Error>) {
 		self.0(format!(
-			"Error while fetching messages from indexing server: {error}"
+			"❌ Error while fetching messages from indexing server: {error}"
 		));
 	}
 }
@@ -43,20 +43,27 @@ impl Default for Logger<'_> {
 
 #[cfg(test)]
 mod test {
-	use std::str::FromStr;
-
 	use super::*;
 	use mockall::predicate::*;
+	use rstest::*;
+	use std::str::FromStr;
 
 	#[automock]
 	trait LoggerCallback {
 		fn log(&self, message: String);
 	}
 
-	#[test]
-	fn on_new_event() {
-		let mut logger = MockLoggerCallback::new();
-		logger.expect_log().with(eq(String::from("New event: Event"))).return_const(());
+	#[fixture]
+	fn logger() -> MockLoggerCallback {
+		MockLoggerCallback::new()
+	}
+
+	#[rstest]
+	fn on_new_event(mut logger: MockLoggerCallback) {
+		logger
+			.expect_log()
+			.with(eq(String::from("⚡ New event: Event")))
+			.return_const(());
 		let logging_callback = move |message| logger.log(message);
 
 		let event = Event;
@@ -64,12 +71,11 @@ mod test {
 		handler.on_new_event(event);
 	}
 
-	#[test]
-	fn on_connect() {
-		let mut logger = MockLoggerCallback::new();
+	#[rstest]
+	fn on_connect(mut logger: MockLoggerCallback) {
 		logger
 			.expect_log()
-			.with(eq(String::from("Indexer `ID` connected")))
+			.with(eq(String::from("🔗 Indexer `ID` connected")))
 			.return_const(());
 		let logging_callback = move |message| logger.log(message);
 
@@ -77,20 +83,21 @@ mod test {
 		handler.on_connect(IndexerId::from("ID"));
 	}
 
-	#[test]
-	fn on_new_block() {
-		let mut logger = MockLoggerCallback::new();
-		logger.expect_log().with(eq(String::from("New block: 0x1234"))).return_const(());
+	#[rstest]
+	fn on_new_block(mut logger: MockLoggerCallback) {
+		logger
+			.expect_log()
+			.with(eq(String::from("⛏️ New block: 0x1234")))
+			.return_const(());
 		let logging_callback = move |message| logger.log(message);
 
 		let handler = Logger::new(&logging_callback);
 		handler.on_new_block(BlockHash::from_str("0x1234").unwrap());
 	}
 
-	#[test]
-	fn on_reorg() {
-		let mut logger = MockLoggerCallback::new();
-		logger.expect_log().with(eq(String::from("Chain reorg"))).return_const(());
+	#[rstest]
+	fn on_reorg(mut logger: MockLoggerCallback) {
+		logger.expect_log().with(eq(String::from("🤕 Chain reorg"))).return_const(());
 		let logging_callback = move |message| logger.log(message);
 
 		let handler = Logger::new(&logging_callback);
@@ -108,7 +115,7 @@ mod test {
 		logger
 			.expect_log()
 			.with(eq(String::from(
-				"Error while fetching messages from indexing server: oops",
+				"❌ Error while fetching messages from indexing server: oops",
 			)))
 			.return_const(());
 		let logging_callback = move |message| logger.log(message);
