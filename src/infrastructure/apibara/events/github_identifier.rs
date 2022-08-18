@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::{collections::VecDeque, fmt::Display};
 
 use super::{topics::*, FromEventError};
 use crate::domain::*;
@@ -24,6 +24,12 @@ impl TryFrom<VecDeque<TopicValue>> for GithubIdentifierRegisteredEvent {
 			contributor_id,
 			identifier,
 		})
+	}
+}
+
+impl Display for GithubIdentifierRegisteredEvent {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		write!(f, "GithubIdentifierRegistered {{ profile_contract: {}, contributor_id: 0x{:x}, identifier: {} }}", self.profile_contract, self.contributor_id, self.identifier)
 	}
 }
 
@@ -80,5 +86,11 @@ mod test {
 			},
 			result.unwrap()
 		);
+	}
+
+	#[rstest]
+	fn display() {
+		let event_as_string = format!("{}", GithubIdentifierRegisteredEvent::default());
+		assert_eq!(format!("GithubIdentifierRegistered {{ profile_contract: {}, contributor_id: 0x{}, identifier: {} }}", ContractAddress::default(), ContributorId::default(), u128::default()), event_as_string);
 	}
 }

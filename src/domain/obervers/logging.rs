@@ -17,7 +17,7 @@ impl Observer for Logger<'_> {
 	}
 
 	fn on_new_event(&self, event: &Event) {
-		self.0(format!("⚡ New event: {:?}", event));
+		self.0(format!("⚡ New event: {}", event));
 	}
 
 	fn on_new_block(&self, block_hash: &BlockHash) {
