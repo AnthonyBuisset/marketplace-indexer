@@ -5,6 +5,7 @@ use proto as apibara;
 mod error;
 use error::Error;
 
+mod events;
 mod indexer_repository;
 mod indexing_service;
 

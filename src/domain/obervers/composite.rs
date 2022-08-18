@@ -37,7 +37,7 @@ mod test {
 
 	#[test]
 	fn on_new_event() {
-		let event = Event;
+		let event = Event::GithubIdentifierRegistered(Default::default());
 
 		let mut observer1 = MockObserver::new();
 		observer1.expect_on_new_event().with(eq(event.clone())).return_const(());

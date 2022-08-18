@@ -34,6 +34,10 @@ mapinto = "0.2.1"
 thiserror = "1.0.31"
 hex = "0.4.3"
 
+# Starknet
+starknet = { git = "https://github.com/ofux/starknet-rs" }
+crypto-bigint = { version = "0.4.8", features = ["serde"] }
+
 # Protocol Buffers
 prost = "0.10.4"
 prost-types = "0.10.1"

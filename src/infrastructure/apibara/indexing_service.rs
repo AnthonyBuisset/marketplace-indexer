@@ -141,41 +141,12 @@ async fn handle_response(
 	}
 }
 
-use thiserror::Error;
-
-#[derive(Debug, Error)]
-pub enum FromEventError {
-	#[error("Unsupported event")]
-	Unsupported,
-}
-
-impl TryFrom<apibara::Event> for Event {
-	type Error = FromEventError;
-
-	fn try_from(event: apibara::Event) -> Result<Self, Self::Error> {
-		match event.event {
-			Some(apibara::event::Event::Starknet(apibara::StarkNetEvent {
-				address,
-				log_index,
-				topics,
-				data,
-			})) => {
-				info!(
-					"New Event from {}: [{log_index}] {:?}. Data: {:?}",
-					ContractAddress::from(address),
-					topics,
-					data
-				);
-				Ok(Event)
-			},
-			_ => Err(Self::Error::Unsupported),
-		}
-	}
-}
-
 #[cfg(test)]
 mod test {
-	use super::{apibara::BlockHeader, *};
+	use super::{
+		apibara::{BlockHeader, TopicValue},
+		*,
+	};
 	use mockall::predicate::*;
 	use rstest::*;
 	use tokio::sync::mpsc::error::TryRecvError;
@@ -204,6 +175,38 @@ mod test {
 	fn apibara_event() -> apibara::Event {
 		apibara::Event {
 			event: Some(apibara::event::Event::Starknet(apibara::StarkNetEvent {
+				topics: vec![TopicValue {
+					value: vec![
+						2, 124, 191, 99, 112, 72, 67, 173, 80, 238, 22, 11, 250, 185, 65, 12, 49,
+						1, 103, 176, 70, 145, 84, 215, 212, 99, 214, 168, 222, 6, 146, 25,
+					],
+				}],
+				data: vec![
+					TopicValue {
+						value: vec![
+							0, 65, 118, 135, 43, 113, 88, 60, 185, 188, 54, 113, 219, 40, 242, 110,
+							127, 66, 106, 124, 7, 100, 97, 58, 8, 56, 187, 153, 239, 55, 58, 166,
+						],
+					},
+					TopicValue {
+						value: vec![
+							0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+							0, 0, 0, 0, 0, 0, 0, 203,
+						],
+					},
+					TopicValue {
+						value: vec![
+							0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+							0, 0, 0, 0, 0, 0, 0, 0,
+						],
+					},
+					TopicValue {
+						value: vec![
+							0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+							0, 0, 0, 0, 6, 101, 25, 175,
+						],
+					},
+				],
 				..Default::default()
 			})),
 		}

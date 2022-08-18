@@ -1,11 +1,14 @@
 use mapinto::ResultMapErrInto;
-use std::{fmt::Display, str::FromStr};
+use std::{
+	fmt::{Debug, Display},
+	str::FromStr,
+};
 use thiserror::Error;
 
 pub type ContractAddress = HexaString;
 pub type BlockHash = HexaString;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Default, Clone, Eq)]
 pub struct HexaString(Vec<u8>);
 
 impl HexaString {
@@ -17,6 +20,19 @@ impl HexaString {
 impl Display for HexaString {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		write!(f, "0x{}", hex::encode(&self.0))
+	}
+}
+
+impl Debug for HexaString {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		write!(f, "0x{}", hex::encode(&self.0))
+	}
+}
+
+impl PartialEq for HexaString {
+	fn eq(&self, other: &Self) -> bool {
+		let is_zero = |val: &&u8| **val == 0;
+		self.0.iter().skip_while(is_zero).eq(other.0.iter().skip_while(is_zero))
 	}
 }
 
