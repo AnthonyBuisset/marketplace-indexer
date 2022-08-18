@@ -1,5 +1,4 @@
 use async_trait::async_trait;
-use log::info;
 use std::sync::Arc;
 use tokio::sync::mpsc::{self, Receiver, Sender};
 use tokio_stream::wrappers::ReceiverStream;
@@ -72,7 +71,6 @@ async fn send_ack_request(
 	sender: &Sender<ConnectIndexerRequest>,
 	block_hash: &BlockHash,
 ) -> Result<(), IndexingServiceError> {
-	info!("Acknowledging block {block_hash}");
 	send(sender, ack_block(block_hash)).await
 }
 
@@ -118,7 +116,7 @@ async fn handle_response(
 		})) => {
 			let block_hash = BlockHash::from(new_head.hash);
 			observer.on_new_block(&block_hash);
-			send_ack_request(sender, &block_hash).await
+			Ok(())
 		},
 
 		Some(ResponseMessage::Reorg(_)) => {
@@ -132,10 +130,10 @@ async fn handle_response(
 					observer.on_new_event(&event);
 				}
 			});
-			if let Some(header) = block {
-				send_ack_request(sender, &header.hash.into()).await
-			} else {
-				Ok(())
+
+			match block {
+				Some(header) => send_ack_request(sender, &header.hash.into()).await,
+				_ => Ok(()),
 			}
 		},
 
@@ -268,14 +266,7 @@ mod test {
 
 		let result = handle_response(response, &channel.tx, &observer).await;
 		assert!(result.is_ok(), "{}", result.err().unwrap());
-
-		let request = channel.rx.try_recv().unwrap();
-		assert_eq!(
-			RequestMessage::Ack(AckBlock {
-				hash: block_hash.bytes(),
-			}),
-			request.message.unwrap()
-		);
+		assert_eq!(TryRecvError::Empty, channel.rx.try_recv().unwrap_err());
 	}
 
 	#[rstest]
@@ -300,7 +291,14 @@ mod test {
 
 		let result = handle_response(response, &channel.tx, &observer).await;
 		assert!(result.is_ok(), "{}", result.err().unwrap());
-		assert!(channel.rx.try_recv().is_ok());
+
+		let request = channel.rx.try_recv().unwrap();
+		assert_eq!(
+			RequestMessage::Ack(AckBlock {
+				hash: block_hash.bytes(),
+			}),
+			request.message.unwrap()
+		);
 	}
 
 	#[rstest]
